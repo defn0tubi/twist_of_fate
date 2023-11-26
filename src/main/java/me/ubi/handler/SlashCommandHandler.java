@@ -45,9 +45,9 @@ public class SlashCommandHandler extends ListenerAdapter {
         slashMap.put(slash.getName(), slash);
 
         if (slash.isSpecificGuild()) {
-            guildCommandsData.addCommands(slash.getCommandData());
+            guildCommandsData.addCommands(slash.getCommandData()).queue();
         } else {
-            globalCommandsData.addCommands(slash.getCommandData());
+            globalCommandsData.addCommands(slash.getCommandData()).queue();
         }
     }
 
