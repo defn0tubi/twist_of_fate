@@ -2,13 +2,25 @@ package me.ubi.game;
 
 import java.util.List;
 
-public interface Player {
-    String getName();
+public class Player {
+    private String name;
+    private int points;
+    private int floatingPoints;
+    private List<Bonus> bonuses;
 
-    int getPoints();
+    public String getName() {
+        return this.name;
+    }
 
-    int getFloatingPoints();
+    public int getPoints() {
+        return this.points;
+    }
 
-    List<Bonus> getBonuses();
+    public int getFloatingPoints() {
+        return this.floatingPoints;
+    }
 
+    public List<Bonus> getBonuses() {
+        return this.bonuses;
+    }
 }

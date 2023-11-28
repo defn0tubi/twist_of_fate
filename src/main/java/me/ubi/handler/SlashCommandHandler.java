@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 public class SlashCommandHandler extends ListenerAdapter {
     private static final Map<String, Slash> slashMap = new HashMap<>();
@@ -65,6 +67,10 @@ public class SlashCommandHandler extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         Slash slash = slashMap.get(event.getName());
-        slash.onSlashCommandEvent(event);
+        try {
+            slash.onSlashCommandEvent(event);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

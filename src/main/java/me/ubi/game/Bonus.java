@@ -11,13 +11,25 @@ public enum Bonus {
     INSPIRATION_ROUND("Вдохновение (один раунд)","Игрок кидает к8 и прибавляет полученный результат ко всем броскам. Каждый раз кидается новый к8 и полученный результат прибавляется", 8),
     MASTER_OF_ALL("Мастер на все руки (одноразовый)","Грабёж гарантированно будет успешен", 10);
 
-    private String name;
-    private String description;
-    private int cost;
+    private final String name;
+    private final String description;
+    private final int cost;
 
     Bonus(String name, String description, int cost) {
         this.name = name;
         this.description = description;
         this.cost = cost;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getCost() {
+        return cost;
     }
 }
