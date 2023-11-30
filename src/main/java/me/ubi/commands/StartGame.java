@@ -1,5 +1,8 @@
-package me.ubi.slash;
+package me.ubi.commands;
 
+import me.ubi.game.Game;
+import me.ubi.game.GameSettings;
+import me.ubi.game.Player;
 import me.ubi.handler.Slash;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
@@ -8,6 +11,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -17,12 +21,22 @@ public class StartGame implements Slash {
     @Override
     public void onSlashCommandEvent(SlashCommandInteractionEvent event) {
 
-        if (!event.getMember().hasPermission(Permission.ADMINISTRATOR))
-            event.reply("Начать новую игру может только администратор").setEphemeral(true).queue();
+        int queueTime = Integer.parseInt(GameSettings.QUEUE_TIME.getValue());
+        TextChannel channel = event.getChannel().asTextChannel();
 
+        if (!event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+            event.reply("Начать новую игру может только администратор").setEphemeral(true).queue();
+            return;
+        }
+
+        if (Game.getActiveChannels().containsKey(channel) || Game.getChannelsInQueue().contains(channel)) {
+            event.reply("В этом канале уже идет игра").setEphemeral(true).queue();
+            return;
+        }
+
+        Game.addChannelToQueue(channel);
         event.reply("Начат поиск игроков для новой игры").setEphemeral(true).queue();
 
-        TextChannel channel = event.getChannel().asTextChannel();
         Emoji emoji = Emoji.fromUnicode("✅");
         final Message[] queue = new Message[1];
         channel.sendMessage("Нажмите на ✅ чтобы присоединиться к новой игре.\nУ вас есть 15 секунд.").queue(
@@ -32,7 +46,6 @@ public class StartGame implements Slash {
                 }
         );
 
-        // Have to update messages cache of JDA with channel.getHistory(), or else it will not see new reactions :skull:
         CompletableFuture<List<User>> future = new CompletableFuture<>();
 
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
@@ -47,18 +60,24 @@ public class StartGame implements Slash {
                     });
                 }
             }
-        }), 15, TimeUnit.SECONDS);
+        }), queueTime, TimeUnit.SECONDS);
 
         future.thenAccept(usersToJoin -> {
+            List<Player> players = new ArrayList<>();
             if (usersToJoin.isEmpty()) {
                 channel.sendMessage("Никто не присоединился к игре.").queue();
+                Game.removeChannelFromQueue(channel);
             } else {
                 StringBuilder userString = new StringBuilder();
                 for (User user : usersToJoin) {
+                    Player player = new Player(user.getName(), 0, 0, null);
+                    players.add(player);
                     String name = user.getName();
                     userString.append(name);
                 }
-                channel.sendMessage("Люди которые присоединятся к игре(" + usersToJoin.size() + "): " + userString).queue();
+                channel.sendMessage("Началась новая игра со следующими участниками: " + userString).queue();
+                Game game = new Game(players, event.getChannel().asTextChannel());
+                game.startTurn(game);
             }
         });
     }

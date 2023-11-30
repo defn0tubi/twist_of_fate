@@ -1,6 +1,6 @@
-package me.ubi.slash;
+package me.ubi.commands;
 
-import me.ubi.game.Event;
+import me.ubi.game.Bonus;
 import me.ubi.handler.Slash;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -9,15 +9,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
-public class EventHelper implements Slash {
-
+public class BonusHelper implements Slash {
     @Override
     public void onSlashCommandEvent(SlashCommandInteractionEvent event) {
+        // Yes i just copied EventHelper mad?
         User user = event.getUser();
         List<String> helpMessage = new ArrayList<>();
-        Event[] events = Event.class.getEnumConstants();
-        for (Event e : events) {
-            helpMessage.add("**" + e.getName() + "** " + e.getDescription() + "\n\n");
+        Bonus[] events = Bonus.class.getEnumConstants();
+        for (Bonus e : events) {
+            helpMessage.add("**" + e.getName() + "** " + e.getDescription() + "\nЦена: " + e.getCost() + "\n\n");
         }
 
         ListIterator<String> iterator = helpMessage.listIterator();
@@ -41,17 +41,17 @@ public class EventHelper implements Slash {
             user.openPrivateChannel().queue(privateChannel -> privateChannel.sendMessage(leftOverMessage).queue());
         }
 
-        event.reply("Список ивентов был отправлен вам в личные сообщения").queue();
+        event.reply("Список бонусов был отправлен вам в личные сообщения").setEphemeral(true).queue();
     }
 
     @Override
     public String getName() {
-        return "events";
+        return "bonuses";
     }
 
     @Override
     public String getDescription() {
-        return "Ивенты и их описание";
+        return "Бонусы и их описание";
     }
 
     @Override
