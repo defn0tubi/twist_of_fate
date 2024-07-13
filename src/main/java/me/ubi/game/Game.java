@@ -13,10 +13,11 @@ public class Game {
     private static Set<TextChannel> channelsInQueue = new HashSet<>();
     private static Map<TextChannel, Game> activeChannels = new HashMap<>();
     private TextChannel channel;
-    private List<Player> players;
+    private final List<Player> players;
     private ScheduledExecutorService executorService;
     private static int totalRounds = Integer.parseInt(GameSettings.TOTAL_ROUNDS.getValue());
     private int round;
+    private boolean canRob = false;
     private boolean robPhase = false;
 
     public Game(List<Player> players, TextChannel channel) {
@@ -25,6 +26,7 @@ public class Game {
         this.players = players;
         this.round = 0;
         this.channel = channel;
+        this.canRob = false;
     }
 
     public void startTurn(Game game) {
@@ -35,26 +37,42 @@ public class Game {
         Map<Player, String> rollData = game.calculateRoundStartPoints();
         StringBuilder rollDataString;
         if (game.round == totalRounds) {
-            rollDataString = new StringBuilder(String.format("**РАУНД %d/%d**\n**ФИНАЛЬНЫЙ РАУНД**\n\nБроски к8 на начало этого раунда: \n\n", game.getRound(), totalRounds));
+            rollDataString = new StringBuilder(String.format("**РАУНД %d/%d**\n**ФИНАЛЬНЫЙ РАУНД**\n\n", game.getRound(), totalRounds));
         } else {
-            rollDataString = new StringBuilder(String.format("**РАУНД %d/%d**\n\nБроски к8 на начало этого раунда: \n\n", game.getRound(), totalRounds));
+            rollDataString = new StringBuilder(String.format("**РАУНД %d/%d**\n\n", game.getRound(), totalRounds));
         }
+
+        rollDataString.append("Банк (Floating | Bank)\n\n");
+
+        for (Player player : players) {
+            rollDataString.append("`").append(player.getName()).append(": ").append(player.getFloatingPoints()).append(" | ").append(player.getPoints()).append("`\n");
+
+        }
+
+        rollDataString.append("\nБроски к8 на начало этого раунда: \n\n");
 
         for (var entry : rollData.entrySet()) {
             Player player = entry.getKey();
             String data = entry.getValue();
+                    rollDataString.append("`").append(player.getName()).append(": ").append(data).append("`\n");
 
-            rollDataString.append("`").append(player.getName()).append(": ").append(data).append("`");
         }
-        rollDataString.append("\n\nТеперь вы можете начать грабить друг друга! У вас есть 15 секунд.")
+        rollDataString.append("\nТеперь вы можете начать грабить друг друга! У вас есть 15 секунд.\nИспользуйте `/rob @user amount` для грабежа.")
                 .append("\n** **");
         channel.sendMessage(rollDataString).queue();
+        game.setCanRob(true);
 
         executorService.schedule(() -> endTurn(game), turnTime, TimeUnit.SECONDS);
     }
 
     public void endTurn(Game game) {
         executorService.shutdown();
+        game.setCanRob(false);
+
+        for (Player player : players) {
+            player.addPoints(player.getFloatingPoints());
+            player.addFloatingPoints(-player.getFloatingPoints());
+        }
 
         if (game.getRound() == totalRounds) {
             StringBuilder endString = new StringBuilder("**КОНЕЦ ИГРЫ!**");
@@ -85,11 +103,11 @@ public class Game {
         for (Player player : players) {
             int rollResult = Dice.roll(8);
             StringBuilder data = new StringBuilder();
-            player.addPoints(rollResult);
+            player.addFloatingPoints(rollResult);
             data.append(rollResult);
             if (rollResult == 8) {
                 int bonusRoll = Dice.roll(8);
-                player.addPoints(bonusRoll);
+                player.addFloatingPoints(bonusRoll);
                 data.append(" + ").append(bonusRoll);
             }
 
@@ -126,4 +144,13 @@ public class Game {
     public static Map<TextChannel, Game> getActiveChannels() {
         return activeChannels;
     }
+
+    public boolean getCanRob() {
+        return this.canRob;
+    }
+
+    public void setCanRob(boolean canRob) {
+        this.canRob = canRob;
+    }
+
 }
