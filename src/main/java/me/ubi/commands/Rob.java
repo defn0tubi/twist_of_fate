@@ -9,44 +9,56 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+
 public class Rob implements Slash {
+
     @Override
     public void onSlashCommandEvent(SlashCommandInteractionEvent event) throws InterruptedException, ExecutionException, TimeoutException {
         Game game = Game.getActiveChannels().get(event.getChannel().asTextChannel());
 
         if (game == null) {
             event.reply("Сейчас в этом канале не идёт игра").setEphemeral(true).queue();
-        } else if (!game.getCanRob()) {
-            event.reply("Сейчас грабить нельзя!").setEphemeral(true).queue();
+            return;
         }
 
         List<Player> players = game.getPlayers();
 
         Member member = event.getOption("user", OptionMapping::getAsMember);
+        System.out.println(member.getUser().getName());
         int amount = event.getOption("amount", OptionMapping::getAsInt);
         Member selfMember = event.getMember();
         Player robber = null;
 
         // Get the robber
         for (Player player : players) {
-            assert selfMember != null;
             if (player.getName().equals(selfMember.getUser().getName())) {
                 robber = player;
             }
         }
 
+        if (!robber.getCanRob()) {
+            event.reply("Сейчас вы не можете грабить!").setEphemeral(true).queue();
+            return;
+        } else if (Objects.equals(robber.getName(), member.getUser().getName())) {
+            event.reply("Себя грабить нельзя!").setEphemeral(true).queue();
+            return;
+        }
+
         for (Player player : players) {
-            assert member != null;
             if (player.getName().equals(member.getUser().getName())) {
 
                 if (player.getFloatingPoints() < amount) {
                     event.reply(member.getUser().getName() + " слишком бедный, укажите меньшее количество очков")
                             .setEphemeral(true).queue();
+                    return;
                 }
 
                 event.reply("Вы пытаетесь ограбить " + member.getUser().getName() + "...").setEphemeral(true).queue();
@@ -64,7 +76,6 @@ public class Rob implements Slash {
                             .append("!");
                 } else {
                     player.addFloatingPoints(-amount);
-                    assert robber != null;
                     robber.addFloatingPoints(amount);
 
                     string.append(", вы выбили ")
@@ -78,9 +89,12 @@ public class Rob implements Slash {
                             .append("` очков")
                             .append("!");
                 }
+                robber.setCanRob(false);
                 event.getChannel().sendMessage(string).queue();
+                return;
             } else {
                 event.reply("Игрок не найден").setEphemeral(true).queue();
+                return;
             }
         }
 
