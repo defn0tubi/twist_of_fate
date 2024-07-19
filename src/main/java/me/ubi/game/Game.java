@@ -17,8 +17,6 @@ public class Game {
     private ScheduledExecutorService executorService;
     private static int totalRounds = Integer.parseInt(GameSettings.TOTAL_ROUNDS.getValue());
     private int round;
-    private boolean canRob = false;
-    private boolean robPhase = false;
 
     public Game(List<Player> players, TextChannel channel) {
         activeChannels.put(channel, this);
@@ -26,7 +24,6 @@ public class Game {
         this.players = players;
         this.round = 0;
         this.channel = channel;
-        this.canRob = false;
     }
 
     public void startTurn(Game game) {
@@ -60,14 +57,13 @@ public class Game {
         rollDataString.append("\nТеперь вы можете начать грабить друг друга! У вас есть 15 секунд.\nИспользуйте `/rob @user amount` для грабежа.")
                 .append("\n** **");
         channel.sendMessage(rollDataString).queue();
-        game.setCanRob(true);
+        game.resetCanRob();
 
         executorService.schedule(() -> endTurn(game), turnTime, TimeUnit.SECONDS);
     }
 
     public void endTurn(Game game) {
         executorService.shutdown();
-        game.setCanRob(false);
 
         for (Player player : players) {
             player.addPoints(player.getFloatingPoints());
@@ -145,12 +141,10 @@ public class Game {
         return activeChannels;
     }
 
-    public boolean getCanRob() {
-        return this.canRob;
-    }
-
-    public void setCanRob(boolean canRob) {
-        this.canRob = canRob;
+    public void resetCanRob() {
+        for (Player player : this.players) {
+            player.setCanRob(true);
+        }
     }
 
 }
