@@ -8,11 +8,14 @@ public class Player {
     private int floatingPoints;
     private List<Bonus> bonuses;
 
-    public Player(String name, int points, int floatingPoints, List<Bonus> bonuses) {
+    private boolean canRob;
+
+    public Player(String name, int points, int floatingPoints, List<Bonus> bonuses, boolean canRob) {
         this.name = name;
         this.points = points;
         this.floatingPoints = floatingPoints;
         this.bonuses = bonuses;
+        this.canRob = false;
     }
 
     public String getName() {
@@ -37,5 +40,13 @@ public class Player {
 
     public List<Bonus> getBonuses() {
         return this.bonuses;
+    }
+
+    public void setCanRob(boolean canRob) {
+        this.canRob = canRob;
+    }
+
+    public boolean getCanRob() {
+        return this.canRob;
     }
 }
