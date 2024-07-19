@@ -74,7 +74,8 @@ public class StartGame implements Slash {
                     players.add(player);
                     String name = user.getName();
                     System.out.println("Added player with name: " + name);
-                    userString.append(name);
+                    userString.append(name)
+                            .append(" ");
                 }
                 channel.sendMessage("Началась новая игра со следующими участниками: " + userString).queue();
                 Game game = new Game(players, event.getChannel().asTextChannel());

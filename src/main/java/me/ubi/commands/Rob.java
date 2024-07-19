@@ -1,5 +1,6 @@
 package me.ubi.commands;
 
+import me.ubi.game.Event;
 import me.ubi.game.Game;
 import me.ubi.game.Player;
 import me.ubi.handler.Slash;
@@ -9,9 +10,9 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -64,25 +65,39 @@ public class Rob implements Slash {
                 event.reply("Вы пытаетесь ограбить " + member.getUser().getName() + "...").setEphemeral(true).queue();
 
                 StringBuilder string = new StringBuilder(selfMember.getUser().getName());
-                int roll = Dice.roll(8);
+                ArrayList<Integer> roll = Dice.roll(8, game);
 
-                if (roll < amount) {
-                    string.append(", вы выбили ")
-                            .append("`")
-                            .append(roll)
-                            .append("` ")
-                            .append("очков и не смогли ограбить ")
+                if (roll.get(roll.size() - 1) < amount) {
+                    if (game.getCurrentEvent() == Event.DOUBLE_DICE) {
+                        String rollString = Dice.getRollString(roll);
+                        string.append(", вы выбили ")
+                                .append("`")
+                                .append(rollString)
+                                .append("` ");
+                    } else {
+                        string.append("`")
+                                .append(roll)
+                                .append("` ");
+                    }
+                    string.append("очков и не смогли ограбить ")
                             .append(member.getUser().getName())
                             .append("!");
                 } else {
                     player.addFloatingPoints(-amount);
                     robber.addFloatingPoints(amount);
 
-                    string.append(", вы выбили ")
-                            .append("`")
-                            .append(roll)
-                            .append("` ")
-                            .append("очков и успешно грабите ")
+                    if (game.getCurrentEvent() == Event.DOUBLE_DICE) {
+                        String rollString = Dice.getRollString(roll);
+                        string.append(", вы выбили ")
+                                .append("`")
+                                .append(rollString)
+                                .append("` ");
+                    } else {
+                        string.append("`")
+                                .append(roll)
+                                .append("` ");
+                    }
+                    string.append("очков и успешно грабите ")
                             .append(member.getUser().getName())
                             .append(" на `")
                             .append(amount)
@@ -92,12 +107,9 @@ public class Rob implements Slash {
                 robber.setCanRob(false);
                 event.getChannel().sendMessage(string).queue();
                 return;
-            } else {
-                event.reply("Игрок не найден").setEphemeral(true).queue();
-                return;
             }
         }
-
+        event.reply("Игрок не найден").setEphemeral(true).queue();
     }
 
     @Override

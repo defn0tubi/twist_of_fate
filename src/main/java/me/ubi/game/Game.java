@@ -14,6 +14,7 @@ public class Game {
     private static Map<TextChannel, Game> activeChannels = new HashMap<>();
     private TextChannel channel;
     private final List<Player> players;
+    private Event currentEvent;
     private ScheduledExecutorService executorService;
     private static int totalRounds = Integer.parseInt(GameSettings.TOTAL_ROUNDS.getValue());
     private int round;
@@ -27,39 +28,48 @@ public class Game {
     }
 
     public void startTurn(Game game) {
-        int turnTime = Integer.parseInt(GameSettings.TURN_TIME.getValue());
-        executorService = Executors.newSingleThreadScheduledExecutor();
-        game.round += 1;
+        try {
+            int turnTime = Integer.parseInt(GameSettings.TURN_TIME.getValue());
+            executorService = Executors.newSingleThreadScheduledExecutor();
+            game.round += 1;
 
-        Map<Player, String> rollData = game.calculateRoundStartPoints();
-        StringBuilder rollDataString;
-        if (game.round == totalRounds) {
-            rollDataString = new StringBuilder(String.format("**РАУНД %d/%d**\n**ФИНАЛЬНЫЙ РАУНД**\n\n", game.getRound(), totalRounds));
-        } else {
-            rollDataString = new StringBuilder(String.format("**РАУНД %d/%d**\n\n", game.getRound(), totalRounds));
+            if (Boolean.parseBoolean(GameSettings.RANDOM_EVENTS_ENABLED.getValue())) {
+                //Event randomEvent = EventController.getRandomEvent();
+                this.currentEvent = Event.DOUBLE_DICE;
+            }
+
+            Map<Player, String> rollData = game.calculateRoundStartPoints(game);
+            StringBuilder rollDataString;
+            if (game.round == totalRounds) {
+                rollDataString = new StringBuilder(String.format("**РАУНД %d/%d | Текущий ивент: %s**\n**ФИНАЛЬНЫЙ РАУНД**\n\n", game.getRound(), totalRounds, this.getCurrentEvent().getName()));
+            } else {
+                rollDataString = new StringBuilder(String.format("**РАУНД %d/%d | Текущий ивент: %s**\n\n", game.getRound(), totalRounds, this.getCurrentEvent().getName()));
+            }
+
+            rollDataString.append("Банк (Floating | Bank)\n\n");
+
+            for (Player player : players) {
+                rollDataString.append("`").append(player.getName()).append(": ").append(player.getFloatingPoints()).append(" | ").append(player.getPoints()).append("`\n");
+
+            }
+
+            rollDataString.append("\nБроски к8 на начало этого раунда: \n\n");
+
+            for (var entry : rollData.entrySet()) {
+                Player player = entry.getKey();
+                String data = entry.getValue();
+                rollDataString.append("`").append(player.getName()).append(": ").append(data).append("`\n");
+
+            }
+            rollDataString.append("\nТеперь вы можете начать грабить друг друга! У вас есть 15 секунд.\nИспользуйте `/rob @user amount` для грабежа.")
+                    .append("\n** **");
+            channel.sendMessage(rollDataString).queue();
+            game.resetCanRob();
+
+            executorService.schedule(() -> endTurn(game), turnTime, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            System.out.println(e);
         }
-
-        rollDataString.append("Банк (Floating | Bank)\n\n");
-
-        for (Player player : players) {
-            rollDataString.append("`").append(player.getName()).append(": ").append(player.getFloatingPoints()).append(" | ").append(player.getPoints()).append("`\n");
-
-        }
-
-        rollDataString.append("\nБроски к8 на начало этого раунда: \n\n");
-
-        for (var entry : rollData.entrySet()) {
-            Player player = entry.getKey();
-            String data = entry.getValue();
-                    rollDataString.append("`").append(player.getName()).append(": ").append(data).append("`\n");
-
-        }
-        rollDataString.append("\nТеперь вы можете начать грабить друг друга! У вас есть 15 секунд.\nИспользуйте `/rob @user amount` для грабежа.")
-                .append("\n** **");
-        channel.sendMessage(rollDataString).queue();
-        game.resetCanRob();
-
-        executorService.schedule(() -> endTurn(game), turnTime, TimeUnit.SECONDS);
     }
 
     public void endTurn(Game game) {
@@ -93,15 +103,20 @@ public class Game {
         }
     }
 
-    public Map<Player, String> calculateRoundStartPoints() {
+    public Map<Player, String> calculateRoundStartPoints(Game game) {
         Map<Player, String> rollData = new HashMap<>();
 
         for (Player player : players) {
-            int rollResult = Dice.roll(8);
+            ArrayList<Integer> rollResult = Dice.roll(8, game);
             StringBuilder data = new StringBuilder();
-            player.addFloatingPoints(rollResult);
-            data.append(rollResult);
-            if (rollResult == 8) {
+            int roll = rollResult.get(rollResult.size() - 1);
+            player.addFloatingPoints(roll);
+            if (game.getCurrentEvent() == Event.DOUBLE_DICE) {
+                data.append(Dice.getRollString(rollResult));
+            } else {
+                data.append(rollResult.get(0));
+            }
+            if (roll == 8) {
                 int bonusRoll = Dice.roll(8);
                 player.addFloatingPoints(bonusRoll);
                 data.append(" + ").append(bonusRoll);
@@ -145,6 +160,10 @@ public class Game {
         for (Player player : this.players) {
             player.setCanRob(true);
         }
+    }
+
+    public Event getCurrentEvent() {
+        return this.currentEvent;
     }
 
 }
