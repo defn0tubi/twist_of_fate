@@ -15,9 +15,9 @@ public enum GameSettings {
     EVENT_CHANCE("5"),
 
     // If set to true, random events will happen with a RANDOM_EVENT_CHANCE chance
-    RANDOM_EVENTS_ENABLED("false");
+    RANDOM_EVENTS_ENABLED("true");
 
-    private String value;
+    private final String value;
 
     GameSettings(String value) {
         this.value = value;
