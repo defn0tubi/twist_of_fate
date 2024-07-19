@@ -70,9 +70,10 @@ public class StartGame implements Slash {
             } else {
                 StringBuilder userString = new StringBuilder();
                 for (User user : usersToJoin) {
-                    Player player = new Player(user.getName(), 0, 0, null);
+                    Player player = new Player(user.getName(), 0, 0, null, false);
                     players.add(player);
                     String name = user.getName();
+                    System.out.println("Added player with name: " + name);
                     userString.append(name);
                 }
                 channel.sendMessage("Началась новая игра со следующими участниками: " + userString).queue();
